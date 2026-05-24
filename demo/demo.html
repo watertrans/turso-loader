@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Turso TODO (demo)</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6366f1">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 2.5rem 1rem;
+      color: #222;
+    }
+
+    .app { width: 100%; max-width: 500px; }
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 0.25rem;
+    }
+
+    .tagline {
+      font-size: 0.78rem;
+      color: #888;
+      margin-bottom: 1.25rem;
+    }
+
+    .status-bar {
+      font-size: 0.75rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 6px;
+      margin-bottom: 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #e8eaf0;
+      color: #555;
+    }
+    .status-bar.ok    { background: #d1fae5; color: #065f46; }
+    .status-bar.error { background: #fee2e2; color: #991b1b; }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: currentColor; opacity: 0.7; flex-shrink: 0;
+    }
+
+    .version-select {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.82rem;
+      color: #666;
+    }
+    .version-select label { font-weight: 600; }
+    .version-select select {
+      padding: 0.25rem 0.5rem;
+      border: 1.5px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      background: white;
+      cursor: pointer;
+    }
+    .version-select select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .add-form {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .add-form input {
+      flex: 1;
+      padding: 0.65rem 0.9rem;
+      border: 1.5px solid #ddd;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      background: white;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .add-form input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+    .add-form input:disabled { opacity: 0.5; cursor: not-allowed; }
+    .add-form button {
+      padding: 0.65rem 1.3rem;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .add-form button:hover:not(:disabled) { background: #4f46e5; }
+    .add-form button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.75rem;
+    }
+    .filter-btn {
+      padding: 0.3rem 0.75rem;
+      border: 1.5px solid #ddd;
+      background: white;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      color: #666;
+      transition: all 0.1s;
+    }
+    .filter-btn:hover { border-color: #aaa; }
+    .filter-btn.active {
+      border-color: #6366f1;
+      color: #6366f1;
+      background: #eef2ff;
+      font-weight: 600;
+    }
+    .spacer { flex: 1; }
+    .clear-btn {
+      padding: 0.3rem 0.7rem;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 0.78rem;
+      color: #bbb;
+      border-radius: 6px;
+      transition: color 0.15s;
+    }
+    .clear-btn:hover { color: #e74c3c; }
+
+    .todo-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .todo-item {
+      background: white;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      transition: opacity 0.15s;
+    }
+    .todo-item.done-item { opacity: 0.6; }
+
+    .todo-check {
+      width: 19px; height: 19px;
+      cursor: pointer;
+      accent-color: #6366f1;
+      flex-shrink: 0;
+    }
+
+    .todo-text {
+      flex: 1;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .todo-text.done { text-decoration: line-through; color: #bbb; }
+
+    .del-btn {
+      background: none;
+      border: none;
+      color: #ddd;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.1rem 0.25rem;
+      border-radius: 4px;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: color 0.15s;
+    }
+    .del-btn:hover { color: #e74c3c; }
+
+    .empty {
+      text-align: center;
+      color: #bbb;
+      font-size: 0.9rem;
+      padding: 2rem 0;
+    }
+
+    .footer {
+      margin-top: 1.25rem;
+      font-size: 0.78rem;
+      color: #aaa;
+      text-align: center;
+    }
+
+    .file-warning {
+      display: none;
+      margin-bottom: 1.25rem;
+      padding: 0.75rem 1rem;
+      background: #fef9c3;
+      border: 1.5px solid #fcd34d;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      color: #78350f;
+      line-height: 1.5;
+    }
+    .file-warning strong { display: block; margin-bottom: 0.25rem; }
+    .file-warning code {
+      background: rgba(0,0,0,0.08);
+      padding: 0.1em 0.35em;
+      border-radius: 4px;
+      font-size: 0.82rem;
+    }
+
+    /* ---- Demo-only: assembly switcher ---- */
+    .sw-bar {
+      margin-top: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.74rem;
+      color: #bbb;
+    }
+    .sw-label { color: #aaa; white-space: nowrap; }
+    .assembly-sel {
+      padding: 0.2rem 0.4rem;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      background: white;
+      cursor: pointer;
+      color: #666;
+    }
+    .assembly-sel:disabled { opacity: 0.5; cursor: not-allowed; }
+    .update-btn {
+      padding: 0.2rem 0.65rem;
+      border: 1px solid #e0e0e0;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.74rem;
+      color: #999;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .update-btn:hover:not(:disabled) { border-color: #6366f1; color: #6366f1; }
+    .update-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    #update-msg { font-size: 0.72rem; color: #aaa; }
+    #update-msg.ok    { color: #059669; }
+    #update-msg.error { color: #dc2626; }
+
+    /* ---- Network badge ---- */
+    #network-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      font-weight: 500;
+      margin-bottom: 1.25rem;
+      background: #d1fae5;
+      color: #065f46;
+    }
+    #network-badge.offline {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    #network-badge .net-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: currentColor; opacity: 0.7;
+    }
+
+    /* ---- Demo-only: SQL log ---- */
+    .sql-log {
+      margin-top: 1.5rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .sql-log summary {
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      font-size: 0.78rem;
+      color: #888;
+      background: #fafafa;
+      user-select: none;
+    }
+    .sql-log pre {
+      padding: 0.75rem;
+      font-size: 0.72rem;
+      color: #555;
+      background: #fafafa;
+      max-height: 160px;
+      overflow-y: auto;
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Turso TODO</h1>
+    <p class="tagline">Self-hosted Wasm · TursoLoader · todos.db (OPFS)</p>
+
+    <div id="file-warning" class="file-warning">
+      <strong>Cannot open via file://</strong>
+      Turso WASM requires <code>SharedArrayBuffer</code>, which is only available
+      over HTTP with COOP/COEP headers. Please serve the files with an HTTP server:
+      <br><br>
+      <code>npx serve public/ -p 3000</code>
+      &nbsp;→&nbsp; open <code>http://localhost:3000/demo/demo.html</code>
+    </div>
+
+    <div id="network-badge"><span class="net-dot"></span><span id="network-text"></span></div>
+
+    <div id="status" class="status-bar">
+      <span class="status-dot"></span>
+      <span id="status-text">Initializing...</span>
+    </div>
+
+    <div class="version-select">
+      <label for="version-sel">WASM Version:</label>
+      <select id="version-sel" disabled>
+        <option value="0.6.1">0.6.1</option>
+        <option value="0.6.0">0.6.0</option>
+      </select>
+    </div>
+
+    <form class="add-form" id="add-form">
+      <input type="text" id="input" placeholder="Add a new task..."
+             maxlength="200" autocomplete="off" disabled />
+      <button type="submit" id="add-btn" disabled>Add</button>
+    </form>
+
+    <div class="toolbar">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="active">Active</button>
+      <button class="filter-btn" data-filter="done">Done</button>
+      <span class="spacer"></span>
+      <button class="clear-btn" id="clear-btn">Clear completed</button>
+    </div>
+
+    <ul class="todo-list" id="list"></ul>
+    <div class="footer" id="footer"></div>
+
+    <!--
+      DEMO ONLY: assembly switcher + Service Worker update panel.
+      Production apps should manage SW updates via a proper versioning strategy.
+    -->
+    <div class="sw-bar">
+      <span class="sw-label">Assembly:</span>
+      <select id="assembly-sel" class="assembly-sel">
+        <option value="0.6.1">v0.6.1</option>
+        <option value="0.6.0">v0.6.0</option>
+      </select>
+      <button class="update-btn" id="update-btn">Apply &amp; Restart</button>
+      <span id="update-msg"></span>
+    </div>
+
+    <!--
+      DEMO ONLY: SQL execution log for development inspection.
+      Remove this block (and logSQL calls) in production.
+    -->
+    <details class="sql-log" id="sql-log">
+      <summary>SQL Log</summary>
+      <pre id="sql-output"></pre>
+    </details>
+  </div>
+
+  <!--
+    Non-module script: runs synchronously, before the module is even parsed.
+    This ensures the warning is visible even if the module import itself fails
+    (which it will on file://, since CORS blocks cross-origin module loading).
+  -->
+  <script>
+    if (location.protocol === 'file:') {
+      document.getElementById('file-warning').style.display = 'block';
+      const s = document.getElementById('status');
+      s.className = 'status-bar error';
+      s.querySelector('#status-text').textContent =
+        'Requires an HTTP server — see the notice above';
+    }
+  </script>
+
+  <script type="module">
+    import { TursoLoader } from '../public/turso-db.js';
+
+    // ---- DOM refs ----
+    const statusEl    = document.getElementById('status');
+    const statusText  = document.getElementById('status-text');
+    const versionSel  = document.getElementById('version-sel');
+    const form        = document.getElementById('add-form');
+    const inputEl     = document.getElementById('input');
+    const addBtn      = document.getElementById('add-btn');
+    const listEl      = document.getElementById('list');
+    const footerEl    = document.getElementById('footer');
+    const clearBtn    = document.getElementById('clear-btn');
+    const sqlOutput   = document.getElementById('sql-output');
+    const assemblySel = document.getElementById('assembly-sel');
+    const updateBtn   = document.getElementById('update-btn');
+    const updateMsg   = document.getElementById('update-msg');
+
+    // ---- App state ----
+    let db            = null;
+    let filter        = 'all';
+    let isMutating    = false;  // serialise concurrent writes
+    let isInitializing = false; // guard against rapid version switches
+
+    // ---- SQL log (demo/dev only) ----
+    const sqlLog = [];
+
+    function logSQL(sql, params) {
+      const entry = params?.length
+        ? `${sql}  -- [${params.map(p => JSON.stringify(p)).join(', ')}]`
+        : sql;
+      sqlLog.unshift(entry);
+      if (sqlLog.length > 30) sqlLog.pop();
+      sqlOutput.textContent = sqlLog.join('\n');
+    }
+
+    // ---- DB helpers ----
+    // These thin wrappers centralise prepare().run/all/get and the SQL log.
+    // In a real app, keep this pattern and remove the logSQL calls.
+
+    async function exec(sql, ...params) {
+      logSQL(sql, params);
+      return db.prepare(sql).run(...params);
+    }
+
+    async function query(sql, ...params) {
+      logSQL(sql, params);
+      return db.prepare(sql).all(...params);
+    }
+
+    async function queryOne(sql, ...params) {
+      logSQL(sql, params);
+      return db.prepare(sql).get(...params);
+    }
+
+    // ---- Status helpers ----
+
+    function setStatus(state, text) {
+      statusEl.className = `status-bar${state ? ' ' + state : ''}`;
+      statusText.textContent = text;
+    }
+
+    // ---- Init ----
+
+    async function init(version = '0.6.1') {
+      db = null;
+      inputEl.disabled = true;
+      addBtn.disabled  = true;
+      setStatus('', `Loading WASM v${version}...`);
+      sqlLog.length = 0;
+      sqlOutput.textContent = '';
+
+      try {
+        db = await TursoLoader.connect('todos.db', {
+          version,
+          requestStoragePermission: true,
+          schema: [
+            `CREATE TABLE todos (
+               id         INTEGER PRIMARY KEY,
+               text       TEXT    NOT NULL,
+               done       INTEGER NOT NULL DEFAULT 0,
+               created_at INTEGER NOT NULL
+             )`,
+          ],
+          allowExisting: true,
+        });
+
+        setStatus('ok', `Connected (v${version} · todos.db)`);
+        inputEl.disabled = false;
+        addBtn.disabled  = false;
+        inputEl.focus();
+        await render();
+      } catch (err) {
+        const msg = err.message?.includes('createSyncAccessHandle')
+          ? 'DB is locked by another tab — close other tabs and reload'
+          : `Connection failed: ${err.message}`;
+        setStatus('error', msg);
+        console.error('[TursoLoader]', err);
+      }
+    }
+
+    // ---- Render ----
+
+    async function render() {
+      if (!db) return;
+
+      const whereClause =
+        filter === 'active' ? ' WHERE done = 0' :
+        filter === 'done'   ? ' WHERE done = 1' : '';
+
+      // Run all read queries in parallel — independent of each other.
+      const [todos, totalRow, doneRow] = await Promise.all([
+        query(`SELECT * FROM todos${whereClause} ORDER BY created_at DESC`),
+        queryOne('SELECT COUNT(*) AS n FROM todos'),
+        queryOne('SELECT COUNT(*) AS n FROM todos WHERE done = 1'),
+      ]);
+
+      const total       = totalRow.n;
+      const doneCount   = doneRow.n;
+      const activeCount = total - doneCount;
+
+      listEl.innerHTML = '';
+
+      if (todos.length === 0) {
+        const li = document.createElement('li');
+        li.className = 'empty';
+        li.textContent =
+          filter === 'done'   ? 'No completed tasks' :
+          filter === 'active' ? 'No active tasks'    :
+                                'Add a task to get started';
+        listEl.appendChild(li);
+      } else {
+        for (const todo of todos) {
+          const li = document.createElement('li');
+          li.className = `todo-item${todo.done ? ' done-item' : ''}`;
+
+          // Build each element via the DOM API — avoids innerHTML + manual escaping.
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.className = 'todo-check';
+          cb.dataset.id = todo.id;
+          cb.checked = Boolean(todo.done);
+
+          const span = document.createElement('span');
+          span.className = `todo-text${todo.done ? ' done' : ''}`;
+          span.textContent = todo.text; // textContent never interprets HTML
+
+          const del = document.createElement('button');
+          del.className = 'del-btn';
+          del.dataset.id = todo.id;
+          del.setAttribute('aria-label', 'Delete');
+          del.textContent = '✕';
+
+          li.append(cb, span, del);
+          listEl.appendChild(li);
+        }
+      }
+
+      footerEl.textContent = `${total} total · ${activeCount} active · ${doneCount} done`;
+    }
+
+    // ---- Mutation helpers ----
+    // All writes go through lockMutation so concurrent clicks can't interleave.
+
+    async function withMutation(fn) {
+      if (isMutating) return;
+      isMutating = true;
+      try {
+        await fn();
+      } catch (err) {
+        console.error('[TODO]', err);
+        setStatus('error', `Error: ${err.message}`);
+      } finally {
+        isMutating = false;
+      }
+    }
+
+    // ---- Event handlers ----
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const text = inputEl.value.trim();
+      if (!text || !db) return;
+
+      inputEl.disabled = true;
+      addBtn.disabled  = true;
+      await withMutation(async () => {
+        await exec(
+          'INSERT INTO todos (text, done, created_at) VALUES (?, 0, ?)',
+          text, Date.now()
+        );
+        inputEl.value = '';
+        await render();
+      });
+      inputEl.disabled = false;
+      addBtn.disabled  = false;
+      inputEl.focus();
+    });
+
+    listEl.addEventListener('change', async e => {
+      const cb = e.target.closest('.todo-check');
+      if (!cb) return;
+      const newDone = cb.checked ? 1 : 0;
+      await withMutation(async () => {
+        await exec('UPDATE todos SET done = ? WHERE id = ?', newDone, Number(cb.dataset.id));
+        await render();
+      });
+      // If withMutation caught an error, revert the checkbox to its previous visual state.
+      if (!isMutating) cb.checked = !cb.checked; // noop on success (render already re-built the list)
+    });
+
+    listEl.addEventListener('click', async e => {
+      const btn = e.target.closest('.del-btn');
+      if (!btn) return;
+      await withMutation(async () => {
+        await exec('DELETE FROM todos WHERE id = ?', Number(btn.dataset.id));
+        await render();
+      });
+    });
+
+    clearBtn.addEventListener('click', async () => {
+      if (!db) return;
+      await withMutation(async () => {
+        await exec('DELETE FROM todos WHERE done = 1');
+        await render();
+      });
+    });
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        filter = btn.dataset.filter;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        await render();
+      });
+    });
+
+    // Version switch — guard against rapid repeated changes.
+    versionSel.addEventListener('change', async () => {
+      if (isInitializing) {
+        versionSel.value = TursoLoader.getSavedVersion();
+        return;
+      }
+      isInitializing = true;
+      versionSel.disabled = true;
+      await init(versionSel.value);
+      // If init failed (db is still null), revert the selector to the last known-good version.
+      if (!db) versionSel.value = TursoLoader.getSavedVersion();
+      versionSel.disabled = false;
+      isInitializing = false;
+    });
+
+    // ---- Network indicator ----
+    const networkBadge = document.getElementById('network-badge');
+    const networkText  = document.getElementById('network-text');
+    function syncOnlineStatus() {
+      const online = navigator.onLine;
+      networkBadge.classList.toggle('offline', !online);
+      networkText.textContent = online ? 'Online' : 'Offline — data is local only';
+    }
+    window.addEventListener('online',  syncOnlineStatus);
+    window.addEventListener('offline', syncOnlineStatus);
+    syncOnlineStatus();
+
+    // ---- Demo-only: Service Worker registration ----
+    if ('serviceWorker' in navigator) {
+      // Compute all paths from location.href so they work on localhost AND on
+      // GitHub Pages (where the app lives at a subpath like /repo-name/).
+      const pageUrl    = location.href.split('?')[0].split('#')[0];
+      const publicBase = new URL('../public/', location.href).href;
+      const wasmVer    = TursoLoader.getSavedVersion();
+      const swParams   = new URLSearchParams({
+        shell: [pageUrl, publicBase + 'turso-db.js', publicBase + `turso-wasm/v${wasmVer}/main.es.js`].join(','),
+        wasm:  publicBase + 'turso-wasm/',
+        cache: 'turso-demo-v1',
+      });
+      // demo.js lives next to demo.html so its default scope is /demo/
+      // (or /repo-name/demo/ on GitHub Pages) — no Service-Worker-Allowed needed.
+      const swUrl   = new URL('demo.js', location.href).href + '?' + swParams;
+      const swScope = new URL('./', location.href).pathname;
+
+      if (!crossOriginIsolated && !sessionStorage.getItem('coi-reload')) {
+        // First load on a host that cannot set COOP/COEP headers (e.g. GitHub Pages).
+        // Register the SW — it will inject the required headers — then reload once
+        // so the page itself is served with crossOriginIsolated = true.
+        sessionStorage.setItem('coi-reload', '1');
+        navigator.serviceWorker.register(swUrl, { scope: swScope })
+          .then(reg => {
+            const sw = reg.installing || reg.waiting || reg.active;
+            if (!sw) return;
+            const activate = () => { if (sw.state === 'activated') location.reload(); };
+            activate();
+            sw.addEventListener('statechange', activate);
+          })
+          .catch(console.error);
+      } else {
+        if (crossOriginIsolated) sessionStorage.removeItem('coi-reload');
+        navigator.serviceWorker.register(swUrl, { scope: swScope }).catch(console.error);
+        navigator.serviceWorker.addEventListener('message', e => {
+          if (e.data?.type === 'UPDATE_DONE') {
+            updateMsg.textContent = 'Update complete. Reloading...';
+            updateMsg.className = 'ok';
+            setTimeout(() => location.reload(), 1500);
+          } else if (e.data?.type === 'UPDATE_ERROR') {
+            updateBtn.disabled = false;
+            assemblySel.disabled = false;
+            updateMsg.textContent = `Update failed: ${e.data.message}`;
+            updateMsg.className = 'error';
+          }
+        });
+      }
+    }
+
+    // ---- Demo-only: assembly update panel ----
+    updateBtn.addEventListener('click', async () => {
+      const targetVersion = assemblySel.value;
+      const publicBase = new URL('../public/', location.href).href;
+      const wasmUrl    = publicBase + `turso-wasm/v${targetVersion}/main.es.js`;
+
+      updateBtn.disabled = true;
+      assemblySel.disabled = true;
+      updateMsg.textContent = 'Caching...';
+      updateMsg.className = '';
+
+      // Pre-cache the selected WASM version before triggering SW update.
+      if ('caches' in window) {
+        try {
+          const cache = await caches.open('turso-demo-v1');
+          const res = await fetch(wasmUrl, { cache: 'reload' });
+          if (res.ok) await cache.put(wasmUrl, res.clone());
+        } catch (e) {
+          console.warn('[assembly] pre-cache failed:', e);
+        }
+      }
+
+      // Persist so the next cold start loads the chosen version.
+      TursoLoader.saveVersion(targetVersion);
+
+      const sw = navigator.serviceWorker?.controller;
+      if (sw) {
+        updateMsg.textContent = 'Updating...';
+        sw.postMessage({ type: 'UPDATE' });
+      } else {
+        // No SW — reload directly.
+        updateMsg.textContent = 'Reloading...';
+        updateMsg.className = 'ok';
+        setTimeout(() => location.reload(), 800);
+      }
+    });
+
+    // ---- Boot ----
+
+    // Prefer saved version (unaffected by library default changes).
+    const startVersion = TursoLoader.getSavedVersion();
+    versionSel.value = startVersion;
+    assemblySel.value = startVersion;
+    init(startVersion);
+  </script>
+</body>
+</html>
